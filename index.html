@@ -602,11 +602,13 @@
     </div>
   </div>
 
-  <p class="section-label" style="margin-top:8px;">IPEE Patient Experience Excellence Champions</p>
-  <div class="champions-head">
-    <span class="champions-count" id="championsCount">Loading…</span>
+  <div id="championsSection" style="display:none;">
+    <p class="section-label" style="margin-top:8px;">IPEE Patient Experience Excellence Champions</p>
+    <div class="champions-head">
+      <span class="champions-count" id="championsCount">Loading…</span>
+    </div>
+    <div id="championsGrid" class="champions-grid"></div>
   </div>
-  <div id="championsGrid" class="champions-grid"></div>
 
 </div>
 
@@ -1016,10 +1018,19 @@ document.getElementById('pledgeForm').addEventListener('submit', async (e) => {
     enableShareFeatures(record);
     loadChampions();
   }).catch((err) => {
-    console.warn('Pledge not persisted (card still works):', err);
+    console.warn('Pledge not persisted, using local reference code:', err);
+    record.pledgeNo = makeFallbackCode();
+    drawCard(record);
     disableShareFeatures();
   });
 });
+
+function makeFallbackCode(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  return 'IPEE-' + Array.from(bytes).map(b => chars[b % chars.length]).join('');
+}
 
 function updateHash(id){
   history.replaceState(null, '', '#pledge=' + id);
@@ -1123,13 +1134,13 @@ async function loadChampions(){
   const countEl = document.getElementById('championsCount');
   grid.innerHTML = '';
   if(!storageAvailable()){
-    countEl.textContent = '';
-    grid.innerHTML = '<div class="champions-empty">The Champions list needs this page open inside the Claude conversation to load.</div>';
+    document.getElementById('championsSection').style.display = 'none';
     return;
   }
   try{
     const idxRaw = await safeGet('pledge-index', true);
     const idx = idxRaw ? JSON.parse(idxRaw.value) : [];
+    document.getElementById('championsSection').style.display = 'block';
     if(idx.length === 0){
       countEl.textContent = 'Be the first to sign publicly.';
       grid.innerHTML = '<div class="champions-empty">No public pledges yet — yours could be the first to appear here.</div>';
